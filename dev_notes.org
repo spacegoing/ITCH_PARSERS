@@ -1,0 +1,5 @@
+* Background
+** hdf5
+*** What Why How HDF5?
+- What Why: https://www.neonscience.org/about-hdf5
+- HDF5 in Python: http://docs.h5py.org/en/stable/quick.html#quick
