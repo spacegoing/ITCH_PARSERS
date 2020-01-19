@@ -213,11 +213,12 @@ if __name__ == "__main__":
   date_list = ['122607']
   stock_list = ['QQQQ', 'AAPL']
   n_levels = 10
+  h5_filepath = './v2_%d_levels.h5' % n_levels
+  data_path = './'
   stock_booklist = {k: BookList(n_levels) for k in stock_list}
-  filepath = './v2_%d_levels.h5' % n_levels
 
   for date in date_list:
-    filename = 'S%s-v2.txt' % date
+    filename = data_path + 'S%s-v2.txt' % date
 
     with open(filename, 'r') as f:
       message_list = []
@@ -242,10 +243,10 @@ if __name__ == "__main__":
 
     # save hdf5 file
     for k in stock_list:
-      stock_booklist[k].to_hdf5(filepath, stock, date)
+      stock_booklist[k].to_hdf5(h5_filepath, stock, date)
 
-  # read hdf5 file example
-  date = date_list[0]
-  stock = stock_list[0]
-  ask_price_df, ask_volume_df, bid_price_df, bid_volume_df, event_df, ref_df = read_stock_date_hdf5(
-      filepath, stock, date, n_levels)
+  # # read hdf5 file example
+  # date = date_list[0]
+  # stock = stock_list[0]
+  # ask_price_df, ask_volume_df, bid_price_df, bid_volume_df, event_df, ref_df = read_stock_date_hdf5(
+  #     h5_filepath, stock, date, n_levels)

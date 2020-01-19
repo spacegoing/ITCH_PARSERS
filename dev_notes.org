@@ -3,3 +3,39 @@
 *** What Why How HDF5?
 - What Why: https://www.neonscience.org/about-hdf5
 - HDF5 in Python: http://docs.h5py.org/en/stable/quick.html#quick
+* Instructions
+** Run Program
+
+First, change following parameters in ~./NASITCHV2.py~:
+
+#+BEGIN_SRC python
+  date_list = ['122607']
+  stock_list = ['QQQQ', 'AAPL']
+  n_levels = 10
+  h5_filepath = './v2_%d_levels.h5' % n_levels
+  data_path = './'
+#+END_SRC
+
+Then, run
+
+#+BEGIN_SRC bash
+python NASITCHV2.py
+#+END_SRC
+
+The HDF5 file will be generated on ~filepath~
+
+** Read Sample File
+#+BEGIN_SRC python
+date = '122607'
+stock = 'QQQQ'
+h5_filepath = './v2.h5'
+n_levels = 10
+
+ask_price_df, ask_volume_df, bid_price_df, bid_volume_df, event_df, ref_df = read_stock_date_hdf5(
+    h5_filepath, stock, date, n_levels)
+  # # read hdf5 file example
+  # date = date_list[0]
+  # stock = stock_list[0]
+  # ask_price_df, ask_volume_df, bid_price_df, bid_volume_df, event_df, ref_df = read_stock_date_hdf5(
+  #     h5_filepath, stock, date, n_levels)
+#+END_SRC
