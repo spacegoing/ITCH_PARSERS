@@ -168,6 +168,10 @@ class BookList:
       if book_dict[ref_message.data['price']] == 0:
         book_dict.pop(ref_message.data['price'])
 
+  def to_hdf5(self, filepath, stock, date):
+    df = pd.DataFrame(booklist.book_dict_list)
+    df.to_hdf(filepath, key='%s/%s' % (stock, date), mode='a')
+
 
 def look_up_message(ref_no, message_list):
   for m in reversed(message_list):
@@ -178,33 +182,70 @@ def look_up_message(ref_no, message_list):
   return Exception('ref_no %s not found' % ref_no)
 
 
-filename = 'S122607-v2.txt'
+def read_stock_date_hdf5(filepath, stock, date, n_levels):
+  ask_price_keys = ['ask_price_%d' % i for i in range(1, n_levels + 1)]
+  ask_volume_keys = ['ask_volume_%d' % i for i in range(1, n_levels + 1)]
+  bid_price_keys = ['bid_price_%d' % i for i in range(1, n_levels + 1)]
+  bid_volume_keys = ['bid_volume_%d' % i for i in range(1, n_levels + 1)]
+  event_keys = [
+      'event_BS',
+      'event_display',
+      'event_message_type',
+      'event_price',
+      'event_ref_no',
+      'event_stock',
+      'event_time',
+      'event_volume',
+  ]
+  ref_keys = [
+      'ref_BS', 'ref_display', 'ref_message_type', 'ref_price', 'ref_ref_no',
+      'ref_stock', 'ref_time', 'ref_volume'
+  ]
+  df = pd.read_hdf(filepath, '%s/%s' % (stock, date))
+  ask_price_df, ask_volume_df, bid_price_df, bid_volume_df, event_df, ref_df = df[
+      ask_price_keys], df[ask_volume_keys], df[bid_price_keys], df[
+          bid_volume_keys], df[event_keys], df[ref_keys]
+  return ask_price_df, ask_volume_df, bid_price_df, bid_volume_df, event_df, ref_df
 
-n_levels = 10
-stock_list = ['AAPL']
-stock_booklist = {k: BookList(n_levels) for k in stock_list}
-message_list = []
 
-with open(filename, 'r') as f:
-  message_list = []
-  for line_no, line in enumerate(f):
-    message = Message(line, line_no)
-    if message.error:
-      print(message.error)
-      break
-    else:
-      message_list.append(message)
+if __name__ == "__main__":
 
-      # reverse find ref message
-      stock = message.data.get('stock')
-      ref_message = None
-      if message.type in ['E', 'X']:
-        ref_message = look_up_message(message.data['ref_no'], message_list)
-        stock = ref_message.data['stock']
+  date_list = ['122607']
+  stock_list = ['QQQQ', 'AAPL']
+  n_levels = 10
+  stock_booklist = {k: BookList(n_levels) for k in stock_list}
+  filepath = './v2_%d_levels.h5' % n_levels
 
-      if stock in stock_list:
-        booklist = stock_booklist[stock]
-        booklist.update(message, ref_message)
-        if ref_message:
-          import ipdb; ipdb.set_trace(context=7)
+  for date in date_list:
+    filename = 'S%s-v2.txt' % date
 
+    with open(filename, 'r') as f:
+      message_list = []
+      for line_no, line in enumerate(f):
+        message = Message(line, line_no)
+        if message.error:
+          print(message.error)
+          break
+        else:
+          message_list.append(message)
+
+          # reverse find ref message
+          stock = message.data.get('stock')
+          ref_message = None
+          if message.type in ['E', 'X']:
+            ref_message = look_up_message(message.data['ref_no'], message_list)
+            stock = ref_message.data['stock']
+
+          if stock in stock_list:
+            booklist = stock_booklist[stock]
+            booklist.update(message, ref_message)
+
+    # save hdf5 file
+    for k in stock_list:
+      stock_booklist[k].to_hdf5(filepath, stock, date)
+
+  # read hdf5 file example
+  date = date_list[0]
+  stock = stock_list[0]
+  ask_price_df, ask_volume_df, bid_price_df, bid_volume_df, event_df, ref_df = read_stock_date_hdf5(
+      filepath, stock, date, n_levels)
