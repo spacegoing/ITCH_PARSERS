@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import traceback
+import time
 
 
 class Message:
@@ -94,7 +95,6 @@ class BookList:
     #     'A_price', 'A_BS', 'A_display', 'AEX_volume', 'E_match_no'
     # ]
     self.n_levels = n_levels
-    self.message_list = []
     self.bid_price_volume_dict = dict()
     self.ask_price_volume_dict = dict()
     self.book_dict_list = []
@@ -145,7 +145,6 @@ class BookList:
 
   def update_market_book(self, message, ref_message):
     """Update Book using incoming Message data."""
-    self.message_list.append(message)
 
     if message.type == 'A':
       if message.buysell == 'B':
@@ -179,7 +178,7 @@ def look_up_message(ref_no, message_list):
       if m.data['ref_no'] == ref_no:
         return m
 
-  return Exception('ref_no %s not found' % ref_no)
+  return None
 
 
 def read_stock_date_hdf5(filepath, stock, date, n_levels):
@@ -208,15 +207,11 @@ def read_stock_date_hdf5(filepath, stock, date, n_levels):
   return ask_price_df, ask_volume_df, bid_price_df, bid_volume_df, event_df, ref_df
 
 
-if __name__ == "__main__":
-
-  date_list = ['122607']
-  stock_list = ['QQQQ', 'AAPL']
-  n_levels = 10
-  h5_filepath = './v2_%d_levels.h5' % n_levels
-  data_path = './'
+def parse_v2(stock_list, date_list, n_levels, h5_filepath, data_path):
   stock_booklist = {k: BookList(n_levels) for k in stock_list}
 
+  log_interval = 10000
+  last_time = time.time()
   for date in date_list:
     filename = data_path + 'S%s-v2.txt' % date
 
@@ -228,22 +223,46 @@ if __name__ == "__main__":
           print(message.error)
           break
         else:
-          message_list.append(message)
+          if message.type == 'A' and message.data['stock'] in stock_list:
+            message_list.append(message)
 
           # reverse find ref message
           stock = message.data.get('stock')
           ref_message = None
           if message.type in ['E', 'X']:
             ref_message = look_up_message(message.data['ref_no'], message_list)
+
+            # if no ref message, either data error or not in stock_list
+            if not ref_message:
+              continue
+
             stock = ref_message.data['stock']
 
           if stock in stock_list:
             booklist = stock_booklist[stock]
             booklist.update(message, ref_message)
 
+          if not line_no % log_interval:
+            print('time elapsed: %f minutes' % ((time.time() - last_time)/60))
+            print(line_no)
+            last_time = time.time()
     # save hdf5 file
     for k in stock_list:
       stock_booklist[k].to_hdf5(h5_filepath, stock, date)
+
+  return stock_booklist
+
+
+if __name__ == "__main__":
+
+  date_list = ['122607']
+  stock_list = ['QQQQ', 'AAPL']
+  n_levels = 10
+  h5_filepath = './v2_%d_levels.h5' % n_levels
+  data_path = './'
+
+  stock_booklist = parse_v2(stock_list, date_list, n_levels, h5_filepath,
+                            data_path)
 
   # # read hdf5 file example
   # date = date_list[0]
