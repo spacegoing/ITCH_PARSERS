@@ -168,17 +168,14 @@ class BookList:
         book_dict.pop(ref_message.data['price'])
 
   def to_hdf5(self, filepath, stock, date):
-    df = pd.DataFrame(booklist.book_dict_list)
+    df = pd.DataFrame(self.book_dict_list)
     df.to_hdf(filepath, key='%s/%s' % (stock, date), mode='a')
 
 
-def look_up_message(ref_no, message_list):
-  for m in reversed(message_list):
-    if m.type == 'A':
-      if m.data['ref_no'] == ref_no:
-        return m
+def look_up_message(ref_no, message_dict):
+  ref_message = message_dict.get(ref_no)
 
-  return None
+  return ref_message
 
 
 def read_stock_date_hdf5(filepath, stock, date, n_levels):
@@ -216,7 +213,7 @@ def parse_v2(stock_list, date_list, n_levels, h5_filepath, data_path):
     filename = data_path + 'S%s-v2.txt' % date
 
     with open(filename, 'r') as f:
-      message_list = []
+      message_dict = dict()
       for line_no, line in enumerate(f):
         message = Message(line, line_no)
         if message.error:
@@ -224,13 +221,13 @@ def parse_v2(stock_list, date_list, n_levels, h5_filepath, data_path):
           break
         else:
           if message.type == 'A' and message.data['stock'] in stock_list:
-            message_list.append(message)
+            message_dict[message.data['ref_no']] = message
 
           # reverse find ref message
           stock = message.data.get('stock')
           ref_message = None
           if message.type in ['E', 'X']:
-            ref_message = look_up_message(message.data['ref_no'], message_list)
+            ref_message = look_up_message(message.data['ref_no'], message_dict)
 
             # if no ref message, either data error or not in stock_list
             if not ref_message:
@@ -243,7 +240,7 @@ def parse_v2(stock_list, date_list, n_levels, h5_filepath, data_path):
             booklist.update(message, ref_message)
 
           if not line_no % log_interval:
-            print('time elapsed: %f minutes' % ((time.time() - last_time)/60))
+            print('time elapsed: %f minutes' % ((time.time() - last_time) / 60))
             print(line_no)
             last_time = time.time()
     # save hdf5 file
@@ -269,3 +266,4 @@ if __name__ == "__main__":
   # stock = stock_list[0]
   # ask_price_df, ask_volume_df, bid_price_df, bid_volume_df, event_df, ref_df = read_stock_date_hdf5(
   #     h5_filepath, stock, date, n_levels)
+  # 4:47
