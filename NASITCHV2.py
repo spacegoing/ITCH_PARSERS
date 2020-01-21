@@ -174,7 +174,6 @@ class BookList:
 
 def look_up_message(ref_no, message_dict):
   ref_message = message_dict.get(ref_no)
-
   return ref_message
 
 
@@ -245,7 +244,7 @@ def parse_v2(stock_list, date_list, n_levels, h5_filepath, data_path):
             last_time = time.time()
     # save hdf5 file
     for k in stock_list:
-      stock_booklist[k].to_hdf5(h5_filepath, stock, date)
+      stock_booklist[k].to_hdf5(h5_filepath, k, date)
 
   return stock_booklist
 
